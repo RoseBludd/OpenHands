@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, Globe, Info, Monitor } from "lucide-react";
 import { ServerClient } from "@openhands/typescript-client/clients";
-import OpenHandsLogoWhite from "#/assets/branding/openhands-logo-white.svg?react";
+import OpenHandsLogoWhite from "#/assets/branding/genius-wordmark.svg?react";
 import { ModalBackdrop } from "#/components/shared/modals/modal-backdrop";
 import {
   MODAL_MAX_WIDTH_VIEWPORT,
