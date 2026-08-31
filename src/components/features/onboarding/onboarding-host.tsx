@@ -1,6 +1,4 @@
 import { useLocation } from "react-router";
-import { useActiveBackend } from "#/contexts/active-backend-context";
-import { SEEDED_DEFAULT_BACKEND_ID } from "#/api/backend-registry/default-backend";
 import { useSettings } from "#/hooks/query/use-settings";
 import { isSubscriptionLlmConfig } from "#/constants/llm-subscription";
 import type { Settings } from "#/types/settings";
@@ -41,18 +39,17 @@ export function OnboardingHost() {
   const previewStep = readOnboardingPreviewStep(location.search);
   const isPreview = isOnboardingPreviewActive(location.search);
   const { isCompleted, markCompleted } = useOnboardingCompletion();
-  const { backend } = useActiveBackend();
+
   const settings = useSettings();
   // A backend the user pointed at explicitly (Cloud, or a Local server added
   // via "Add Backend") is one whose configuration this browser did not create,
   // so its reported LLM is trustworthy evidence that setup is already done.
-  const trustsBackendLlm =
-    backend.kind === "cloud" || backend.id !== SEEDED_DEFAULT_BACKEND_ID;
-
   if (!isPreview) {
     if (isCompleted) return null;
-    if (trustsBackendLlm && settings.isLoading) return null;
-    if (trustsBackendLlm && hasUsableLlm(settings.data)) {
+    if (settings.isLoading) return null;
+    // Any backend (including the seeded default) reporting a usable LLM means
+    // setup is already done — never re-run onboarding in that case.
+    if (hasUsableLlm(settings.data)) {
       return null;
     }
   }
