@@ -522,6 +522,22 @@ export function groupConversations(
       0,
     );
 
+  if (agentNames) {
+    // Seeded agent folders keep their profile order; everything else falls
+    // back to recency after them.
+    const seededOrder = [...agentNames.keys()].map((id) => `agent:${id}`);
+    const seededIndex = new Map(seededOrder.map((id, i) => [id, i]));
+    groups.sort((a, b) => {
+      const ai = seededIndex.get(a.id);
+      const bi = seededIndex.get(b.id);
+      if (ai !== undefined && bi !== undefined) return ai - bi;
+      if (ai !== undefined) return -1;
+      if (bi !== undefined) return 1;
+      return groupOrderKey(b) - groupOrderKey(a);
+    });
+    return groups;
+  }
+
   groups.sort((a, b) => groupOrderKey(b) - groupOrderKey(a));
   return groups;
 }
