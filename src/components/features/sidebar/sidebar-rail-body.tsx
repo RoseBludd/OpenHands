@@ -44,8 +44,14 @@ import {
 import { useCanvasExtensionsRuntime } from "#/components/features/canvas-extensions/canvas-extensions-runtime";
 
 const ICON_SIZE = 18;
-const SIDEBAR_LOGO_WIDTH = 34;
-const SIDEBAR_LOGO_HEIGHT = Math.round((SIDEBAR_LOGO_WIDTH * 30) / 46);
+// genius. wordmark (240x80 viewBox, 3:1) — rendered large enough to read in
+// the 300px expanded rail; the collapsed 60px rail keeps a compact mark.
+const SIDEBAR_LOGO_WIDTH = 108;
+const SIDEBAR_LOGO_HEIGHT = Math.round((SIDEBAR_LOGO_WIDTH * 80) / 240);
+const SIDEBAR_LOGO_WIDTH_COLLAPSED = 34;
+const SIDEBAR_LOGO_HEIGHT_COLLAPSED = Math.round(
+  (SIDEBAR_LOGO_WIDTH_COLLAPSED * 80) / 240,
+);
 
 export interface SidebarRailBodyProps {
   collapsed: boolean;
@@ -124,10 +130,23 @@ export function SidebarRailBody({
             )}
           >
             <OpenHandsLogoButton
-              logoWidth={SIDEBAR_LOGO_WIDTH}
-              logoHeight={SIDEBAR_LOGO_HEIGHT}
+              logoWidth={
+                collapsed && showCollapseToggle
+                  ? SIDEBAR_LOGO_WIDTH_COLLAPSED
+                  : SIDEBAR_LOGO_WIDTH
+              }
+              logoHeight={
+                collapsed && showCollapseToggle
+                  ? SIDEBAR_LOGO_HEIGHT_COLLAPSED
+                  : SIDEBAR_LOGO_HEIGHT
+              }
               logoClassName="max-w-none"
-              className={cn(SIDEBAR_ICON_SLOT_CLASS, "overflow-visible")}
+              className={cn(
+                collapsed && showCollapseToggle
+                  ? SIDEBAR_ICON_SLOT_CLASS
+                  : "flex items-center overflow-visible",
+                "overflow-visible",
+              )}
             />
           </div>
           {collapsed && showCollapseToggle ? (

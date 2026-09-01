@@ -69,6 +69,7 @@ import { MANIFEST_ICON_BY_SLUG } from "#/components/features/manifest/manifest-i
 import { ManifestOverviewTiles } from "#/components/features/manifest/manifest-overview-tiles";
 import { ManifestSubpageLayout } from "#/components/features/manifest/manifest-subpage-layout";
 import { cn, downloadBlob } from "#/utils/utils";
+import { TwinAutomationsSection } from "#/components/features/automations/twin-automations-section";
 
 const PAGE_SIZE = 50;
 
@@ -501,6 +502,11 @@ export default function AutomationsList() {
         <div className="mt-6">
           <RecommendedAutomationsLauncher query={searchQuery} />
         </div>
+      )}
+
+      {/* Twin automations (agent-twins service, R2 source of truth) */}
+      {!isHealthLoading && isBackendHealthy && (
+        <TwinAutomationsSection searchQuery={searchQuery} />
       )}
 
       {/* Delete confirmation modal */}

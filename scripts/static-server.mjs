@@ -743,6 +743,18 @@ const isMainModule =
 if (isMainModule) {
   try {
     const config = parseArgs();
+    const extraRoutes = process.env.CANVAS_EXTRA_ROUTES;
+    if (extraRoutes) {
+      for (const pair of extraRoutes.split(/[\s]+/)) {
+        const eq = pair.indexOf("=");
+        if (eq <= 0 || !pair.slice(0, eq).startsWith("/")) {
+          throw new Error(
+            `Invalid CANVAS_EXTRA_ROUTES entry (expected /prefix=url): ${pair}`,
+          );
+        }
+        config.routes[pair.slice(0, eq)] = pair.slice(eq + 1);
+      }
+    }
     await startStaticServer(config);
   } catch (err) {
     console.error(err instanceof Error ? err.message : err);
