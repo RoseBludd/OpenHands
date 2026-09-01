@@ -5,11 +5,12 @@ import { NoBackendAvailableError } from "../agent-server-client-options";
 /**
  * Client for the agent-twins service (sovereign digital twins). The twins
  * service is NOT the agent-server — it is a sidecar Bun service on the
- * deployment host, reached through the same static-server proxy seam the
- * automation sidecar uses (`/api/twins` prefix, same session API key and
- * `X-Session-API-Key` header as the automation sidecar).
+ * deployment host, reached through the canvas static-server proxy seam
+ * (`/twins` prefix). The proxy strips the prefix, so a frontend call to
+ * `/twins/<rest>` reaches the twins service at `/<rest>` (e.g. the roster at
+ * `/twins/twins` hits the service's own `GET /twins`).
  */
-const TWINS_BASE_PATH = "/api/twins";
+const TWINS_BASE_PATH = "/twins";
 
 const twinsAxios = axios.create();
 
@@ -108,4 +109,23 @@ export async function runTwinAutomation(
     `${TWINS_BASE_PATH}/run/${encodeURIComponent(twin)}/${encodeURIComponent(slug)}`,
   );
   return res.data;
+}
+/** A twin from the roster — the twins service's canonical twin list. */
+export interface TwinRosterEntry {
+  /** Twin service name (route key), e.g. "archy". */
+  twin: string;
+  /** Display name, e.g. "Archy" or "devvy.". */
+  display: string;
+  /** Seat label, e.g. "development". Empty when the twin has no seat. */
+  seat: string;
+}
+
+/** Load the twin roster (the twins service's own `GET /twins`). */
+export async function fetchTwinRoster(): Promise<TwinRosterEntry[]> {
+  const res = await twinsAxios.get<TwinRecord[]>(`${TWINS_BASE_PATH}/twins`);
+  return (res.data ?? []).map((t) => ({
+    twin: t.name,
+    display: t.display || t.name,
+    seat: t.seat ?? "",
+  }));
 }
