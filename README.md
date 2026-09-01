@@ -150,6 +150,17 @@ Agent Canvas is part of a multi-repository OpenHands system. Changes should go t
 The Agent Server API is implemented by the SDK and consumed through the TypeScript client by Agent Canvas. The automation service decides when work runs and dispatches conversations to the Agent Server/SDK, which decides what runs. See [`AGENTS.md`](./AGENTS.md) for contributor-specific boundaries and the required custom code-review guide.
 
 
+## Genius twin automations (RoseBludd fork)
+
+This fork wires the Agent Canvas Automations UI to the Genius agent-twins service (`agent-twins`, port 3340 on the Genius Substrates host).
+
+- **Twin automation runs**: Canvas automations with a `twin` trigger dispatch to the twins service (`POST /ask/:twin`), appending each run to the twin's R2 transcript (`conversations/<twin>.jsonl`). The Automations UI shows twin runs (success/error/last-run) via `AUTOMATIONS$TWINS` i18n keys.
+- **Bridge adapter**: `acp/twin-acp.mjs` on the host bridges the ACP agent protocol to the twins service; conversations stream over SSE and persist per-twin.
+- **Deploy**: build the frontend (`bun run build` with `VITE_BASE_PATH=/canvas`), tar `build/` to the host, extract into `/srv/agent-canvas/frontend-new`, and restart the `agent-canvas` container (entrypoint serves static from `/opt/agent-canvas/frontend`).
+- **Branding**: page title and SVG wordmark are re-branded to `genius.`; the sidebar logo chunk lives at `build/assets/genius-wordmark-*.js`.
+- **Automation service**: runs inside the same container on port 18001, DB at `/home/openhands/.openhands/automation/automations.db`; requires `LOCAL_BACKEND_API_KEY` at first boot (persisted to `/srv/agent-canvas/.api-key` on the host).
+- **Translation completeness**: any new UI string must add all 15 locale entries (en + ja, zh-CN, zh-TW, ko-KR, no, ar, de, fr, it, pt, es, ca, tr, uk) in one commit or `scripts/check-translation-completeness.cjs` rejects the push.
+
 ## More documentation
 
 - [Documentation index](./docs/README.md)
