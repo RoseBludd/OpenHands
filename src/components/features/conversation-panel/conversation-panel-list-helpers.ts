@@ -594,6 +594,40 @@ export function applyGroupFolderOrder<T extends { id: string }>(
 
 export type GroupFolderDropPosition = "before" | "after";
 
+/** Strip the trailing dot from twin agent profile names ("archy." -> "archy"). */
+export function twinNameFromProfile(profileName: string): string {
+  return profileName.endsWith(".") ? profileName.slice(0, -1) : profileName;
+}
+
+/**
+ * Remove agent-profile folders whose stripped profile name matches a sovereign
+ * twin in `twinNames`. Unassigned (`agent:none`) and non-twin profiles survive.
+ */
+export function filterOutAgentTwinGroups<T extends { id: string }>(
+  groups: readonly T[],
+  agentNames: ReadonlyMap<string, string> | undefined,
+  twinNames: ReadonlySet<string> | undefined,
+): T[] {
+  if (!agentNames || !twinNames) {
+    return [...groups];
+  }
+
+  return groups.filter((group) => {
+    if (!group.id.startsWith("agent:")) {
+      return true;
+    }
+    const profileId = group.id.slice(6);
+    if (profileId === "none") {
+      return true;
+    }
+    const profileName = agentNames.get(profileId);
+    if (!profileName) {
+      return true;
+    }
+    return !twinNames.has(twinNameFromProfile(profileName));
+  });
+}
+
 export function moveGroupFolderOrder(
   order: readonly string[],
   groupIds: readonly string[],

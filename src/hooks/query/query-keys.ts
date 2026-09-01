@@ -26,6 +26,10 @@ export const AGENT_PROFILES_QUERY_KEYS = {
   all: ["agent-profiles"] as const,
 } as const;
 
+export const TWIN_ROSTER_QUERY_KEYS = {
+  all: ["twin-roster"] as const,
+} as const;
+
 export const PROVIDER_CONNECTIONS_QUERY_KEYS = {
   all: ["provider-connections"] as const,
 } as const;

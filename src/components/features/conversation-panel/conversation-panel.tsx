@@ -7,6 +7,7 @@ import { useActiveBackend } from "#/contexts/active-backend-context";
 import { useBackendScopedPath } from "#/hooks/use-backend-scoped-path";
 import { usePaginatedConversations } from "#/hooks/query/use-paginated-conversations";
 import { useAgentProfiles } from "#/hooks/query/use-agent-profiles";
+import { useTwinRoster } from "#/hooks/query/use-twin-roster";
 import { useResolvedWorkspaces } from "#/hooks/query/use-resolved-workspaces";
 import { useStartTasks } from "#/hooks/query/use-start-tasks";
 import { useDeleteConversation } from "#/hooks/mutation/use-delete-conversation";
@@ -37,11 +38,13 @@ import { cn } from "#/utils/utils";
 import { ConversationPanelFilterMenu } from "./conversation-panel-filter-menu";
 import { ConversationPanelNewThreadPicker } from "./conversation-panel-new-thread-picker";
 import { ConversationGroupFolderList } from "./conversation-group-folder-list";
+import { TwinThreadList } from "./twin-thread-list";
 import { ConversationPanelPinnedSection } from "./conversation-panel-pinned-section";
 import {
   applyAutomationConversationFilter,
   applyGroupFolderOrder,
   collectAutomationNameFacets,
+  filterOutAgentTwinGroups,
   filterOutPinnedConversations,
   getGroupDiscoveryConversationIds,
   groupConversations,
@@ -96,7 +99,11 @@ export function ConversationPanel({
   compact = false,
 }: ConversationPanelProps) {
   const { t } = useTranslation("openhands");
-  const { conversationId: currentConversationId, navigate } = useNavigation();
+  const {
+    conversationId: currentConversationId,
+    currentPath,
+    navigate,
+  } = useNavigation();
   const { backend: activeBackend } = useActiveBackend();
   const backendScopedPath = useBackendScopedPath();
   // Click-outside is only relevant in the legacy drawer mode where an
@@ -557,6 +564,50 @@ export function ConversationPanel({
     () => conversationGroups?.map((group) => group.id) ?? [],
     [conversationGroups],
   );
+
+  const showTwinList = organizeMode === "agents" && !compact;
+  const twinRosterQuery = useTwinRoster({ enabled: showTwinList });
+
+  const twinRows = React.useMemo(() => {
+    if (!showTwinList || !twinRosterQuery.data?.length) {
+      return null;
+    }
+    return twinRosterQuery.data.map((entry) => ({
+      twin: entry.twin,
+      label: entry.display || entry.twin,
+    }));
+  }, [showTwinList, twinRosterQuery.data]);
+
+  const twinNames = React.useMemo(() => {
+    if (!twinRows) {
+      return undefined;
+    }
+    return new Set(twinRows.map((row) => row.twin));
+  }, [twinRows]);
+
+  const folderGroups = React.useMemo(() => {
+    if (!orderedConversationGroups) {
+      return null;
+    }
+    if (!twinRows || !twinNames) {
+      return orderedConversationGroups;
+    }
+    return filterOutAgentTwinGroups(
+      orderedConversationGroups,
+      agentNames,
+      twinNames,
+    );
+  }, [orderedConversationGroups, agentNames, twinNames, twinRows]);
+
+  const folderGroupIds = React.useMemo(
+    () => folderGroups?.map((group) => group.id) ?? [],
+    [folderGroups],
+  );
+
+  const activeTwinName = React.useMemo(() => {
+    const match = currentPath.match(/\/twins\/([^/?#]+)/);
+    return match?.[1] ? decodeURIComponent(match[1]) : null;
+  }, [currentPath]);
 
   const compactVisibleConversations = React.useMemo(
     () =>
@@ -1038,7 +1089,8 @@ export function ConversationPanel({
     listIsEffectivelyEmpty &&
     !showPinnedSection &&
     !startTasks?.length &&
-    !hasVisibleGroups;
+    !hasVisibleGroups &&
+    !(twinRows != null && twinRows.length > 0);
 
   const showConversationHeader = !compact;
 
@@ -1171,12 +1223,23 @@ export function ConversationPanel({
 
         {!showInitialSkeleton &&
         !compact &&
+        twinRows != null &&
+        twinRows.length > 0 ? (
+          <TwinThreadList
+            twins={twinRosterQuery.data ?? []}
+            activeTwinName={activeTwinName}
+            onNavigate={onClose}
+          />
+        ) : null}
+
+        {!showInitialSkeleton &&
+        !compact &&
         (organizeMode === "grouped" || organizeMode === "agents") &&
-        orderedConversationGroups &&
-        orderedConversationGroups.length > 0 ? (
+        folderGroups &&
+        folderGroups.length > 0 ? (
           <ConversationGroupFolderList
-            groups={orderedConversationGroups}
-            groupIds={conversationGroupIds}
+            groups={folderGroups}
+            groupIds={twinRows != null ? folderGroupIds : conversationGroupIds}
             groupFolderOrder={groupFolderOrder}
             setGroupFolderOrder={setGroupFolderOrder}
             collapsedGroupIds={collapsedGroupIds}

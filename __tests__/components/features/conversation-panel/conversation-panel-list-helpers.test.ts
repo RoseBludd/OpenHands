@@ -3,6 +3,7 @@ import {
   applyAutomationConversationFilter,
   applyGroupFolderOrder,
   collectAutomationNameFacets,
+  filterOutAgentTwinGroups,
   getGroupConversationPreview,
   getGroupDiscoveryConversationIds,
   groupConversations,
@@ -12,6 +13,7 @@ import {
   moveGroupFolderOrder,
   resolvePinnedConversations,
   sortConversationsByField,
+  twinNameFromProfile,
   UNNAMED_AUTOMATION_FACET,
 } from "#/components/features/conversation-panel/conversation-panel-list-helpers";
 import type { AppConversation } from "#/api/conversation-service/agent-server-conversation-service.types";
@@ -292,17 +294,18 @@ describe("conversation-panel-list-helpers", () => {
     ]);
 
     expect([
+      ...getGroupDiscoveryConversationIds(items, pageByConversationId, "local"),
+    ]).toEqual(["none-1", "alpha-1"]);
+
+    expect([
       ...getGroupDiscoveryConversationIds(
         items,
         pageByConversationId,
         "local",
+        {
+          forceIncludeConversationId: "none-2",
+        },
       ),
-    ]).toEqual(["none-1", "alpha-1"]);
-
-    expect([
-      ...getGroupDiscoveryConversationIds(items, pageByConversationId, "local", {
-        forceIncludeConversationId: "none-2",
-      }),
     ]).toEqual(["none-1", "alpha-1", "none-2"]);
 
     const grouped = groupConversations(items, "local", "updated", {
@@ -713,5 +716,43 @@ describe("conversation-panel-list-helpers", () => {
       knownWorkspaces,
     );
     expect(groups).toHaveLength(0);
+  });
+
+  it("twinNameFromProfile strips one trailing dot and leaves default untouched", () => {
+    expect(twinNameFromProfile("archy.")).toBe("archy");
+    expect(twinNameFromProfile("devvy.")).toBe("devvy");
+    expect(twinNameFromProfile("default")).toBe("default");
+    expect(twinNameFromProfile("genius..")).toBe("genius.");
+  });
+
+  it("filterOutAgentTwinGroups removes twin agent folders and keeps unassigned plus non-twin profiles", () => {
+    const agentNames = new Map<string, string>([
+      ["archy-id", "archy."],
+      ["devvy-id", "devvy."],
+      ["default-id", "default"],
+    ]);
+    const twinNames = new Set(["archy", "devvy"]);
+    const groups = [
+      { id: "agent:archy-id", label: "archy." },
+      { id: "agent:devvy-id", label: "devvy." },
+      { id: "agent:default-id", label: "default" },
+      { id: "agent:none", label: "Unassigned" },
+    ];
+
+    expect(
+      filterOutAgentTwinGroups(groups, agentNames, twinNames).map((g) => g.id),
+    ).toEqual(["agent:default-id", "agent:none"]);
+  });
+
+  it("filterOutAgentTwinGroups returns groups unchanged when twinNames is undefined", () => {
+    const groups = [{ id: "agent:archy-id", label: "archy." }];
+    const agentNames = new Map<string, string>([["archy-id", "archy."]]);
+
+    expect(filterOutAgentTwinGroups(groups, agentNames, undefined)).toEqual(
+      groups,
+    );
+    expect(
+      filterOutAgentTwinGroups(groups, undefined, new Set(["archy"])),
+    ).toEqual(groups);
   });
 });
