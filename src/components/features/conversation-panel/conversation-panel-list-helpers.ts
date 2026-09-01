@@ -346,6 +346,12 @@ function repositoryGroup(conversation: AppConversation): {
   return { id: `repo:${normalized}`, label };
 }
 
+function seededOrderByName(agentNames: ReadonlyMap<string, string>): string[] {
+  return [...agentNames.entries()]
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    .map(([id]) => `agent:${id}`);
+}
+
 /**
  * Resolves the stable folder identity used by grouped conversation views.
  *
@@ -471,6 +477,21 @@ export function groupConversations(
       const normalized = ws.path.trim().replace(/\/+$/, "");
       if (normalized) {
         byId.set(`ws:${normalized}`, { label: ws.name, conversations: [] });
+      }
+    }
+  }
+
+  // Agents mode: every known profile gets a folder even with zero threads —
+  // the Grok-style "all my agents are always listed" behavior. Empty folders
+  // launch straight into a new conversation with that agent (buildGroupLaunch
+  // already maps `agent:<id>` to `agentProfileId`).
+  if (agentNames) {
+    for (const id of seededOrderByName(agentNames)) {
+      if (!byId.has(id)) {
+        byId.set(id, {
+          label: agentNames.get(id.slice(6)) ?? "",
+          conversations: [],
+        });
       }
     }
   }
