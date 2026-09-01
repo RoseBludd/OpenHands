@@ -365,7 +365,7 @@ function getConversationGroupIdentity(
     if (profileId) {
       return {
         id: `agent:${profileId}`,
-        label: agentNames.get(profileId) ?? profileId.slice(0, 8),
+        label: agentNames.get(profileId) ?? profileId.slice(0, 6) + "…",
       };
     }
     return { id: "agent:none", label: "" };
