@@ -66,7 +66,7 @@ const initialState: ConversationPanelPreferencesState = {
   showLlmProfiles: false,
   showTagsMetadata: false,
   showHoverMetadata: true,
-  organizeMode: "chronological",
+  organizeMode: "agents",
   conversationSort: "updated",
   threadScope: "all",
   automationFilterMode: "all",
@@ -142,6 +142,14 @@ export const useConversationPanelPreferencesStore =
       }),
       {
         name: "conversation-panel-preferences",
+        // v1: introduce the agents-first default. Migrating once flips every
+        // existing browser into the new sidebar grouping instead of leaving
+        // stale "chronological"/"grouped" values in localStorage.
+        version: 1,
+        migrate: (persisted) => ({
+          ...(persisted as Partial<ConversationPanelPreferencesState>),
+          organizeMode: "agents",
+        }),
         storage: createJSONStorage(() => localStorage),
         // Only persist the data fields — actions are recreated on each load.
         partialize: (state): ConversationPanelPreferencesState => ({

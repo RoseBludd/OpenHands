@@ -214,6 +214,15 @@ export function ConversationPanelFilterMenu({
         >
           <MenuHeading>{t(I18nKey.CONVERSATION_PANEL$ORGANIZE)}</MenuHeading>
           <MenuRow
+            icon={Bot}
+            label={t(I18nKey.CONVERSATION_PANEL$BY_AGENT)}
+            selected={organizeMode === "agents"}
+            onClick={() => {
+              setOrganizeMode("agents");
+              setFilterMenuOpen(false);
+            }}
+          />
+          <MenuRow
             icon={Folder}
             label={groupedLabel}
             selected={organizeMode === "grouped"}

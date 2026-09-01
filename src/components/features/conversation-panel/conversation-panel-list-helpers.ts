@@ -9,7 +9,7 @@ import {
 
 export type ConversationSortField = "created" | "updated";
 export type ThreadScope = "all" | "relevant";
-export type OrganizeMode = "grouped" | "chronological";
+export type OrganizeMode = "grouped" | "chronological" | "agents";
 export type AutomationFilterMode =
   | "all"
   | "hide-automations"
@@ -243,6 +243,8 @@ export type ConversationGroupLaunch = {
     gitProvider: Provider;
     branch?: string;
   };
+  /** Launch a new conversation from a specific AgentProfile (agent folders) */
+  agentProfileId?: string;
 };
 
 function buildGroupLaunch(
@@ -250,6 +252,11 @@ function buildGroupLaunch(
   backendKind: BackendKind,
   conversations: AppConversation[],
 ): ConversationGroupLaunch {
+  if (id.startsWith("agent:")) {
+    const profileId = id.slice(6);
+    return profileId === "none" ? {} : { agentProfileId: profileId };
+  }
+
   if (backendKind === "local") {
     if (id === "__none_workspace") {
       return {};
@@ -348,7 +355,21 @@ function repositoryGroup(conversation: AppConversation): {
 function getConversationGroupIdentity(
   conversation: AppConversation,
   backendKind: BackendKind,
+  agentNames?: ReadonlyMap<string, string>,
 ): { id: string; label: string } {
+  // Agent-folder mode: conversations bucket by the AgentProfile they were
+  // launched from. Threads without a profile land in the unassigned folder.
+  if (agentNames) {
+    const profileId =
+      conversation.launched_agent_profile?.agent_profile_id ?? null;
+    if (profileId) {
+      return {
+        id: `agent:${profileId}`,
+        label: agentNames.get(profileId) ?? profileId.slice(0, 8),
+      };
+    }
+    return { id: "agent:none", label: "" };
+  }
   return backendKind === "local"
     ? workspaceGroup(conversation)
     : repositoryGroup(conversation);
@@ -377,7 +398,10 @@ export function getGroupDiscoveryConversationIds(
   items: readonly AppConversation[],
   pageByConversationId: ReadonlyMap<string, number>,
   backendKind: BackendKind,
-  options?: { forceIncludeConversationId?: string | null },
+  options?: {
+    forceIncludeConversationId?: string | null;
+    agentNames?: ReadonlyMap<string, string>;
+  },
 ): Set<string> {
   // Resolve each conversation's folder identity exactly once; both passes
   // below (finding each folder's discovery page, then collecting the ids on
@@ -385,7 +409,11 @@ export function getGroupDiscoveryConversationIds(
   // workspace/repository normalization.
   const resolved = items.map((conversation) => ({
     conversationId: conversation.id,
-    groupId: getConversationGroupIdentity(conversation, backendKind).id,
+    groupId: getConversationGroupIdentity(
+      conversation,
+      backendKind,
+      options?.agentNames,
+    ).id,
     page: pageByConversationId.get(conversation.id) ?? 0,
   }));
 
@@ -419,8 +447,14 @@ export function groupConversations(
   items: readonly AppConversation[],
   backendKind: BackendKind,
   sortField: ConversationSortField,
-  labels: { emptyWorkspace: string; emptyRepository: string },
+  labels: {
+    emptyWorkspace: string;
+    emptyRepository: string;
+    /** Fallback label for threads with no launched AgentProfile (agent mode) */
+    unassignedAgent?: string;
+  },
   knownWorkspaces?: readonly LocalWorkspace[],
+  agentNames?: ReadonlyMap<string, string>,
 ): {
   id: string;
   label: string;
@@ -445,13 +479,16 @@ export function groupConversations(
     const { id, label: rawLabel } = getConversationGroupIdentity(
       c,
       backendKind,
+      agentNames,
     );
     const label =
       id === "__none_workspace"
         ? labels.emptyWorkspace
         : id === "__none_repo"
           ? labels.emptyRepository
-          : rawLabel;
+          : id === "agent:none"
+            ? (labels.unassignedAgent ?? rawLabel)
+            : rawLabel;
     const bucket = byId.get(id);
     if (bucket) {
       bucket.conversations.push(c);

@@ -40968,5 +40968,39 @@
     "ca": "darrera execució",
     "tr": "son çalıştırma",
     "uk": "останній запуск"
+  },
+  "CONVERSATION_PANEL$BY_AGENT": {
+    "en": "By agent",
+    "ja": "エージェント別",
+    "zh-CN": "按智能体",
+    "zh-TW": "按代理",
+    "ko-KR": "에이전트별",
+    "no": "Etter agent",
+    "ar": "حسب الوكيل",
+    "de": "Nach Agent",
+    "fr": "Par agent",
+    "it": "Per agente",
+    "pt": "Por agente",
+    "es": "Por agente",
+    "ca": "Per agent",
+    "tr": "Ajana göre",
+    "uk": "За агентом"
+  },
+  "CONVERSATION_PANEL$UNASSIGNED_AGENT": {
+    "en": "Unassigned",
+    "ja": "未割り当て",
+    "zh-CN": "未分配",
+    "zh-TW": "未指派",
+    "ko-KR": "미할당",
+    "no": "Ikke tildelt",
+    "ar": "غير معين",
+    "de": "Nicht zugewiesen",
+    "fr": "Non attribué",
+    "it": "Non assegnato",
+    "pt": "Sem agente",
+    "es": "Sin asignar",
+    "ca": "Sense assignar",
+    "tr": "Atanmamış",
+    "uk": "Без агента"
   }
 }

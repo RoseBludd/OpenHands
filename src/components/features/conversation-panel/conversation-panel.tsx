@@ -6,6 +6,7 @@ import { useNavigation } from "#/context/navigation-context";
 import { useActiveBackend } from "#/contexts/active-backend-context";
 import { useBackendScopedPath } from "#/hooks/use-backend-scoped-path";
 import { usePaginatedConversations } from "#/hooks/query/use-paginated-conversations";
+import { useAgentProfiles } from "#/hooks/query/use-agent-profiles";
 import { useResolvedWorkspaces } from "#/hooks/query/use-resolved-workspaces";
 import { useStartTasks } from "#/hooks/query/use-start-tasks";
 import { useDeleteConversation } from "#/hooks/mutation/use-delete-conversation";
@@ -466,12 +467,29 @@ export function ConversationPanel({
     () => ({
       emptyWorkspace: t(I18nKey.CONVERSATION_PANEL$NO_WORKSPACE),
       emptyRepository: t(I18nKey.CONVERSATION_PANEL$NO_REPOSITORY),
+      unassignedAgent: t(I18nKey.CONVERSATION_PANEL$UNASSIGNED_AGENT),
     }),
     [t],
   );
 
+  // Agent-folder grouping: profile id -> display name ("archy.", "devvy.", ...).
+  // Only used when organizeMode is "agents"; the grouped pipeline (folders,
+  // discovery, sort) is reused so behavior stays consistent.
+  const agentProfilesQuery = useAgentProfiles({
+    enabled: organizeMode === "agents",
+  });
+  const agentNames = React.useMemo(() => {
+    if (organizeMode !== "agents") return undefined;
+    const map = new Map<string, string>();
+    for (const profile of agentProfilesQuery.data?.profiles ?? []) {
+      if (!profile.id) continue;
+      map.set(profile.id, profile.name);
+    }
+    return map;
+  }, [agentProfilesQuery.data, organizeMode]);
+
   const groupedSourceConversations = React.useMemo(() => {
-    if (compact || organizeMode !== "grouped") {
+    if (compact || (organizeMode !== "grouped" && organizeMode !== "agents")) {
       return null;
     }
     // Use the unsorted partitions: groupConversations sorts each bucket
@@ -499,6 +517,7 @@ export function ConversationPanel({
       conversationSort,
       groupLabels,
       allWorkspacesForGrouping,
+      agentNames,
     );
   }, [
     activeBackend.kind,
@@ -506,6 +525,7 @@ export function ConversationPanel({
     groupLabels,
     groupedSourceConversations,
     allWorkspacesForGrouping,
+    agentNames,
   ]);
 
   const groupDiscoveryConversationIds = React.useMemo(() => {
@@ -516,13 +536,14 @@ export function ConversationPanel({
       groupedSourceConversations,
       conversationPageById,
       activeBackend.kind,
-      { forceIncludeConversationId: currentConversationId },
+      { forceIncludeConversationId: currentConversationId, agentNames },
     );
   }, [
     activeBackend.kind,
     conversationPageById,
     currentConversationId,
     groupedSourceConversations,
+    agentNames,
   ]);
 
   const orderedConversationGroups = React.useMemo(() => {
@@ -700,7 +721,10 @@ export function ConversationPanel({
         {
           workingDir: launch.workingDir,
           repository: launch.repository,
-          entryPoint: "sidebar_relaunch_project",
+          agentProfileId: launch.agentProfileId,
+          entryPoint: launch.agentProfileId
+            ? "sidebar_launch_agent"
+            : "sidebar_relaunch_project",
         },
         {
           onSuccess: (data) => {
@@ -1147,7 +1171,7 @@ export function ConversationPanel({
 
         {!showInitialSkeleton &&
         !compact &&
-        organizeMode === "grouped" &&
+        (organizeMode === "grouped" || organizeMode === "agents") &&
         orderedConversationGroups &&
         orderedConversationGroups.length > 0 ? (
           <ConversationGroupFolderList
